@@ -10,14 +10,14 @@ CAMERA_INDEX = 0
 IMAGE_WIDTH = 224
 IMAGE_HEIGHT = 224
 
-IMAGE_COUNT_PER_CLASS = 30
+IMAGE_COUNT_PER_CLASS = 200
 
 GESTURE_CLASSES = [
-    "open_hand",
-    "fist",
-    "peace",
-    "thumbs_up",
-    "thumbs_down",
+    "stop",
+    "safe",
+    "not_safe",
+    "emergency",
+    "help_code",
 ]
 
-IMAGE_BATCH_SIZE = 10
+IMAGE_BATCH_SIZE = 40
