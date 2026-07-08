@@ -14,7 +14,7 @@ def load_datasets():
     train_dataset = tf.keras.utils.image_dataset_from_directory(
         DATASET_DIR,
         labels="inferred",
-        label_mode="categorical",
+        label_mode="int",
         class_names=GESTURE_CLASSES,
         image_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
         batch_size=BATCH_SIZE,
@@ -27,7 +27,7 @@ def load_datasets():
     validation_dataset = tf.keras.utils.image_dataset_from_directory(
         DATASET_DIR,
         labels="inferred",
-        label_mode="categorical",
+        label_mode="int",
         class_names=GESTURE_CLASSES,
         image_size=(IMAGE_HEIGHT, IMAGE_WIDTH),
         batch_size=BATCH_SIZE,

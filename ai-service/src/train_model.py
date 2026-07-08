@@ -16,9 +16,22 @@ def build_model():
     model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dense(128, activation="relu"))
     model.add(tf.keras.layers.Dropout(0.5))
-    model.add(tf.keras.layers.Dense(len(GESTURE_CLASSES), activation="softmax"))
+    model.add(tf.keras.layers.Dense(len(GESTURE_CLASSES), activation="softmax"))    
     
     return model
 
 model = build_model()
 model.summary()
+
+model.compile(
+    optimizer="adam",
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]   
+)
+train_dataset, validation_dataset = load_datasets()
+history = model.fit(
+    train_dataset,
+    validation_data=validation_dataset,
+    epochs=10,
+)
+model.save("models/intivision_v1.keras")

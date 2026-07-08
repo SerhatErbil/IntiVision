@@ -1,0 +1,27 @@
+# Dataset
+dataset/
+
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Trained models
+models/*.keras
+
+# Training checkpoints
+models/checkpoints/
+
+ai-service/models/*.keras
