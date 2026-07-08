@@ -50,7 +50,8 @@ def collect_images_for_class(class_name: str):
     print("Press 'q' to quit.")
 
     started = False
-    image_counter = 0
+    existing_images = list(class_dir.glob(f"{class_name}_*.jpg"))
+    image_counter = len(existing_images)
     prev_time = time.time()
     fps = 0
     session_start_time = time.time()
