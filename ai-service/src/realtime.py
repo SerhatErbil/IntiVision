@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 import json
+import time
+from event_client import send_prediction_event
 
 from config import IMAGE_WIDTH, IMAGE_HEIGHT, MODELS_DIR
 
@@ -36,6 +38,14 @@ def main():
 
     print("Camera opened successfully. Press 'q' to quit.")
 
+    last_detected_prediction = None
+    last_detection_start_time = None
+    last_sent_prediction = None
+
+    STABLE_DURATION_SECONDS = 2.0
+    EMERGENCY_STABLE_DURATION_SECONDS = 0.3
+    CONFIDENCE_THRESHOLD = 0.80
+
     while True:
         ret, frame = camera.read()
 
@@ -65,6 +75,34 @@ def main():
         predicted_index = int(np.argmax(predictions[0]))
         confidence = float(np.max(predictions[0]))
         predicted_label = labels[str(predicted_index)]
+
+        current_time = time.time()
+
+        if confidence >= CONFIDENCE_THRESHOLD:
+            if predicted_label != last_detected_prediction:
+                last_detected_prediction = predicted_label
+                last_detection_start_time = current_time
+
+            stable_duration = current_time - last_detection_start_time
+
+            required_duration = (
+                EMERGENCY_STABLE_DURATION_SECONDS
+                if predicted_label == "emergency"
+                else STABLE_DURATION_SECONDS
+            )
+
+            if (
+                stable_duration >= required_duration
+                and predicted_label != last_sent_prediction
+            ):
+                event_sent = send_prediction_event(predicted_label, confidence)
+
+                if event_sent:
+                    last_sent_prediction = predicted_label
+                    print(f"Event sent: {predicted_label} ({confidence * 100:.2f}%)")
+        else:
+         last_detected_prediction = None
+         last_detection_start_time = None
 
         # UI renkleri
         if predicted_label == "safe":
