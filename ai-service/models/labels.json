@@ -1,0 +1,7 @@
+{
+    "0": "stop",
+    "1": "safe",
+    "2": "not_safe",
+    "3": "emergency",
+    "4": "help_code"
+}
