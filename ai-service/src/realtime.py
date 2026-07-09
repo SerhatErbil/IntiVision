@@ -8,6 +8,22 @@ from config import IMAGE_WIDTH, IMAGE_HEIGHT, MODELS_DIR
 MODEL_PATH = MODELS_DIR / "intivision_v1.keras"
 LABELS_PATH = MODELS_DIR / "labels.json"
 
+
+def load_labels():
+    with open(LABELS_PATH, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def preprocess_frame(frame):
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame = cv2.resize(frame, (IMAGE_WIDTH, IMAGE_HEIGHT))
+
+    frame_array = np.array(frame) / 255.0
+    frame_array = np.expand_dims(frame_array, axis=0)
+
+    return frame_array
+
+
 def main():
     model = tf.keras.models.load_model(MODEL_PATH)
     labels = load_labels()
@@ -27,26 +43,72 @@ def main():
             print("Frame could not be read.")
             break
 
-        frame_array = preprocess_frame(frame)
+        # Kamera görüntüsünü ayna gibi çeviriyoruz
+        frame = cv2.flip(frame, 1)
 
+        # ROI: Kameranın ortasında 300x300 el bölgesi oluşturuyoruz
+        height, width, _ = frame.shape
+        roi_size = 300
+
+        x1 = width // 2 - roi_size // 2
+        y1 = height // 2 - roi_size // 2
+        x2 = width // 2 + roi_size // 2
+        y2 = height // 2 + roi_size // 2
+
+        # ROI: Sadece bu kutunun içindeki görüntüyü modele veriyoruz
+        roi = frame[y1:y2, x1:x2]
+
+        # Prediction artık tüm frame üzerinden değil, ROI üzerinden yapılıyor
+        frame_array = preprocess_frame(roi)
         predictions = model.predict(frame_array, verbose=0)
 
-        predicted_index = int(np.argmax(predictions[0])) 
+        predicted_index = int(np.argmax(predictions[0]))
         confidence = float(np.max(predictions[0]))
-
         predicted_label = labels[str(predicted_index)]
 
+        # UI renkleri
+        if predicted_label == "safe":
+            banner_color = (0, 180, 0)
+            text_color = (255, 255, 255)
+        elif predicted_label == "help_code":
+            banner_color = (0, 215, 255)
+            text_color = (0, 0, 0)
+        elif predicted_label == "stop":
+            banner_color = (0, 140, 255)
+            text_color = (255, 255, 255)
+        elif predicted_label == "not_safe":
+            banner_color = (0, 0, 255)
+            text_color = (255, 255, 255)
+        elif predicted_label == "emergency":
+            banner_color = (0, 0, 255)
+            text_color = (255, 255, 255)
+        else:
+            banner_color = (70, 70, 70)
+            text_color = (255, 255, 255)
 
-        text = f"{predicted_label} - {confidence * 100:.2f}%"
+        text = f"{predicted_label.upper()} - {confidence * 100:.2f}%"
 
+        # ROI kutusunu ekrana çiziyoruz
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
+
+        # Üstte durum bandı çiziyoruz
+        cv2.rectangle(
+            frame,
+            (0, 0),
+            (frame.shape[1], 70),
+            banner_color,
+            -1,
+        )
+
+        # Tahmin sonucunu durum bandının üstüne yazıyoruz
         cv2.putText(
-        frame,
-        text,
-        (20, 40),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        1,
-        (0, 255, 0),
-        2,
+            frame,
+            text,
+            (20, 45),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            text_color,
+            2,
         )
 
         cv2.imshow("IntiVision Realtime Test", frame)
@@ -57,18 +119,6 @@ def main():
     camera.release()
     cv2.destroyAllWindows()
 
-def load_labels():
-    with open(LABELS_PATH, "r", encoding="utf-8") as file:
-        return json.load(file)    
-
-def preprocess_frame(frame):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = cv2.resize(frame, (IMAGE_WIDTH, IMAGE_HEIGHT))
-
-    frame_array = np.array(frame) / 255.0
-    frame_array = np.expand_dims(frame_array, axis=0)
-
-    return frame_array
 
 if __name__ == "__main__":
     main()
