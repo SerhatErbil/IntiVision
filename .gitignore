@@ -1,27 +1,71 @@
-# Dataset
-dataset/
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
 
-
-# Python cache
-__pycache__/
-*.py[cod]
-
-# Virtual environment
-.venv/
-
+# =========================
 # macOS
+# =========================
 .DS_Store
 
+# =========================
 # IDE
+# =========================
 .vscode/
+.idea/
 
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+.venv/
+venv/
+
+# =========================
+# Trained models
+# =========================
+ai-service/models/*.keras
+ai-service/models/*.h5
+ai-service/models/checkpoints/
+
+# labels.json intentionally remains tracked
+
+# =========================
 # Jupyter
+# =========================
 .ipynb_checkpoints/
 
-# Trained models
-models/*.keras
+# =========================
+# Logs
+# =========================
+*.log
+logs/
 
-# Training checkpoints
-models/checkpoints/
+# =========================
+# Test Coverage
+# =========================
+.coverage
+htmlcov/
 
-ai-service/models/*.keras
+# =========================
+# Go build outputs
+# =========================
+backend/bin/
+*.exe
+*.test
+*.out
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.temp
+*.swp
+*~
+ai-service/dataset/
