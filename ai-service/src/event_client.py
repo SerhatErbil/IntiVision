@@ -1,7 +1,6 @@
 import requests
 from datetime import datetime, timezone
 
-
 BACKEND_EVENT_URL = "http://localhost:8080/api/v1/events"
 DEVICE_ID = "camera_01"
 MODEL_VERSION = "v1"
