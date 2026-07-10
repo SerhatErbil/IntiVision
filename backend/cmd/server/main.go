@@ -29,6 +29,8 @@ func main() {
 	predictionEventHandler :=
 		handlers.NewPredictionEventHandler(predictionEventService)
 
+	healthHandler := handlers.NewHealthHandler(db)
+
 	app := fiber.New()
 
 	api := app.Group("/api/v1")
@@ -42,6 +44,7 @@ func main() {
 		"/events",
 		predictionEventHandler.HandleGetPredictionEvents,
 	)
+	app.Get("/health", healthHandler.HandleHealth)
 
 	port := os.Getenv("PORT")
 	if port == "" {
