@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"errors"
+	"log"
 	"strconv"
 
 	"github.com/SerhatErbil/IntiVision/backend/internal/dto"
@@ -20,7 +22,9 @@ func NewPredictionEventHandler(
 	}
 }
 
-func (h *PredictionEventHandler) HandleCreatePredictionEvent(c *fiber.Ctx) error {
+func (h *PredictionEventHandler) HandleCreatePredictionEvent(
+	c *fiber.Ctx,
+) error {
 	var request dto.PredictionEventRequest
 
 	if err := c.BodyParser(&request); err != nil {
@@ -29,10 +33,28 @@ func (h *PredictionEventHandler) HandleCreatePredictionEvent(c *fiber.Ctx) error
 		})
 	}
 
-	event, err := h.service.CreatePredictionEvent(c.Context(), request)
+	event, err := h.service.CreatePredictionEvent(
+		c.Context(),
+		request,
+	)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
+		var validationError *services.ValidationError
+
+		if errors.As(err, &validationError) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": validationError.Error(),
+			})
+		}
+
+		log.Printf(
+			"failed to create prediction event: %v",
+			err,
+		)
+
+		return c.Status(
+			fiber.StatusInternalServerError,
+		).JSON(fiber.Map{
+			"error": "failed to create prediction event",
 		})
 	}
 
@@ -42,7 +64,9 @@ func (h *PredictionEventHandler) HandleCreatePredictionEvent(c *fiber.Ctx) error
 	})
 }
 
-func (h *PredictionEventHandler) HandleGetPredictionEvents(c *fiber.Ctx) error {
+func (h *PredictionEventHandler) HandleGetPredictionEvents(
+	c *fiber.Ctx,
+) error {
 	limit := 20
 
 	if limitQuery := c.Query("limit"); limitQuery != "" {
@@ -56,9 +80,19 @@ func (h *PredictionEventHandler) HandleGetPredictionEvents(c *fiber.Ctx) error {
 		limit = parsedLimit
 	}
 
-	events, err := h.service.GetPredictionEvents(c.Context(), limit)
+	events, err := h.service.GetPredictionEvents(
+		c.Context(),
+		limit,
+	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		log.Printf(
+			"failed to fetch prediction events: %v",
+			err,
+		)
+
+		return c.Status(
+			fiber.StatusInternalServerError,
+		).JSON(fiber.Map{
 			"error": "failed to fetch prediction events",
 		})
 	}
