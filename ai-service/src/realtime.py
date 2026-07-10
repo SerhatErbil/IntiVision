@@ -1,15 +1,18 @@
+import json
+import time
+
 import cv2
 import numpy as np
 import tensorflow as tf
-import json
-import time
+
+from config import (
+    CAMERA_INDEX,
+    IMAGE_HEIGHT,
+    IMAGE_WIDTH,
+    LABELS_PATH,
+    MODEL_PATH,
+)
 from event_client import send_prediction_event
-
-from config import IMAGE_WIDTH, IMAGE_HEIGHT, MODELS_DIR
-
-MODEL_PATH = MODELS_DIR / "intivision_v1.keras"
-LABELS_PATH = MODELS_DIR / "labels.json"
-
 
 def load_labels():
     with open(LABELS_PATH, "r", encoding="utf-8") as file:
@@ -30,7 +33,7 @@ def main():
     model = tf.keras.models.load_model(MODEL_PATH)
     labels = load_labels()
 
-    camera = cv2.VideoCapture(0)
+    camera = cv2.VideoCapture(CAMERA_INDEX)
 
     if not camera.isOpened():
         print("Camera could not be opened.")
@@ -101,8 +104,8 @@ def main():
                     last_sent_prediction = predicted_label
                     print(f"Event sent: {predicted_label} ({confidence * 100:.2f}%)")
         else:
-         last_detected_prediction = None
-         last_detection_start_time = None
+             last_detected_prediction = None
+             last_detection_start_time = None
 
         # UI renkleri
         if predicted_label == "safe":

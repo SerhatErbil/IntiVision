@@ -5,11 +5,9 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-from config import IMAGE_WIDTH, IMAGE_HEIGHT, MODELS_DIR
 
 
-MODEL_PATH = MODELS_DIR / "intivision_v1.keras"
-LABELS_PATH = MODELS_DIR / "labels.json"
+from config import IMAGE_HEIGHT, IMAGE_WIDTH, LABELS_PATH, MODEL_PATH
 
 
 def load_labels():

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/SerhatErbil/IntiVision/backend/internal/database"
 	"github.com/SerhatErbil/IntiVision/backend/internal/handlers"
@@ -36,14 +37,20 @@ func main() {
 		"/events",
 		predictionEventHandler.HandleCreatePredictionEvent,
 	)
+
 	api.Get(
 		"/events",
 		predictionEventHandler.HandleGetPredictionEvents,
 	)
 
-	log.Println("IntiVision backend running on port 8080")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-	if err := app.Listen(":8080"); err != nil {
+	log.Printf("IntiVision backend running on port %s", port)
+
+	if err := app.Listen(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }

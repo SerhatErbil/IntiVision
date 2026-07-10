@@ -1,10 +1,7 @@
 import requests
 from datetime import datetime, timezone
 
-BACKEND_EVENT_URL = "http://localhost:8080/api/v1/events"
-DEVICE_ID = "camera_01"
-MODEL_VERSION = "v1"
-
+from config import DEVICE_ID, EVENT_API_URL, MODEL_VERSION
 
 def send_prediction_event(gesture, confidence):
     payload = {
@@ -16,7 +13,7 @@ def send_prediction_event(gesture, confidence):
     }
 
     try:
-        response = requests.post(BACKEND_EVENT_URL, json=payload, timeout=3)
+        response = requests.post(EVENT_API_URL, json=payload, timeout=3)
         response.raise_for_status()
 
         return True
