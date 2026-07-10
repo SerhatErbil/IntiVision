@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: intivision-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: intivision
+
+  
+    volumes:
+      - intivision_postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations/001_create_prediction_events.sql:/docker-entrypoint-initdb.d/001_create_prediction_events.sql:ro
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d intivision"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - intivision-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: intivision-backend
+    restart: unless-stopped
+
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/intivision?sslmode=disable
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://localhost:8080/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - intivision-network
+
+volumes:
+  intivision_postgres_data:
+
+networks:
+  intivision-network:
+    driver: bridge
