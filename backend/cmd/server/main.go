@@ -36,6 +36,10 @@ func main() {
 		"/events",
 		predictionEventHandler.HandleCreatePredictionEvent,
 	)
+	api.Get(
+		"/events",
+		predictionEventHandler.HandleGetPredictionEvents,
+	)
 
 	log.Println("IntiVision backend running on port 8080")
 

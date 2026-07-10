@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	"github.com/SerhatErbil/IntiVision/backend/internal/dto"
 	"github.com/SerhatErbil/IntiVision/backend/internal/services"
 	"github.com/gofiber/fiber/v2"
@@ -37,5 +39,32 @@ func (h *PredictionEventHandler) HandleCreatePredictionEvent(c *fiber.Ctx) error
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"status": "created",
 		"event":  event,
+	})
+}
+
+func (h *PredictionEventHandler) HandleGetPredictionEvents(c *fiber.Ctx) error {
+	limit := 20
+
+	if limitQuery := c.Query("limit"); limitQuery != "" {
+		parsedLimit, err := strconv.Atoi(limitQuery)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "limit must be a valid integer",
+			})
+		}
+
+		limit = parsedLimit
+	}
+
+	events, err := h.service.GetPredictionEvents(c.Context(), limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to fetch prediction events",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"count":  len(events),
+		"events": events,
 	})
 }

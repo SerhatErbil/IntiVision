@@ -47,3 +47,18 @@ func (s *PredictionEventService) CreatePredictionEvent(
 
 	return event, nil
 }
+
+func (s *PredictionEventService) GetPredictionEvents(
+	ctx context.Context,
+	limit int,
+) ([]entities.PredictionEvent, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+
+	if limit > 100 {
+		limit = 100
+	}
+
+	return s.repository.GetAll(ctx, limit)
+}
