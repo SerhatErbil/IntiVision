@@ -29,9 +29,26 @@ model.compile(
     metrics=["accuracy"]   
 )
 train_dataset, validation_dataset = load_datasets()
+early_stopping = tf.keras.callbacks.EarlyStopping(
+    monitor="val_loss",
+    patience=3,
+    restore_best_weights=True,
+)
+
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    filepath="models/intivision_v2_1_best.keras",
+    monitor="val_loss",
+    save_best_only=True,
+)
+
 history = model.fit(
     train_dataset,
     validation_data=validation_dataset,
-    epochs=10,
+    epochs=20,
+    callbacks=[
+        early_stopping,
+        checkpoint,
+    ],
 )
-model.save("models/intivision_v1.keras")
+
+model.save("models/intivision_v2_1.keras")

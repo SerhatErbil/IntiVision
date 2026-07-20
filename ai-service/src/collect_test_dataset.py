@@ -15,7 +15,6 @@ from config import (
 )
 
 
-
 WINDOW_NAME = "IntiVision Dataset Collector"
 DEFAULT_BATCH_SIZE = 20
 

@@ -69,3 +69,20 @@ backend/bin/
 *.swp
 *~
 ai-service/dataset/
+
+# =========================
+# Trained models
+# =========================
+ai-service/models/*.keras
+ai-service/models/*.h5
+ai-service/models/checkpoints/
+
+# labels.json intentionally remains tracked
+
+# =========================
+# Dataset
+# =========================
+ai-service/dataset/
+test_dataset/
+
+dataset_backup_v1/

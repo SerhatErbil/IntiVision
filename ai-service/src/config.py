@@ -24,7 +24,7 @@ def resolve_path(environment_name: str, default_path: Path) -> Path:
 
 MODEL_PATH = resolve_path(
     "MODEL_PATH",
-    MODELS_DIR / "intivision_v1.keras",
+    MODELS_DIR / "intivision_v2_1.keras"
 )
 
 LABELS_PATH = resolve_path(
