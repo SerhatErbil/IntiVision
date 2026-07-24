@@ -28,15 +28,6 @@ __pycache__/
 venv/
 
 # =========================
-# Trained models
-# =========================
-ai-service/models/*.keras
-ai-service/models/*.h5
-ai-service/models/checkpoints/
-
-# labels.json intentionally remains tracked
-
-# =========================
 # Jupyter
 # =========================
 .ipynb_checkpoints/
@@ -68,7 +59,17 @@ backend/bin/
 *.temp
 *.swp
 *~
+*_backup.py
+
+# =========================
+# Datasets
+# =========================
 ai-service/dataset/
+ai-service/dataset_mediapipe/
+ai-service/dataset_mediapipe_preview/
+
+test_dataset/
+dataset_backup_v1/
 
 # =========================
 # Trained models
@@ -80,9 +81,11 @@ ai-service/models/checkpoints/
 # labels.json intentionally remains tracked
 
 # =========================
-# Dataset
+# MediaPipe
 # =========================
-ai-service/dataset/
-test_dataset/
+ai-service/models/mediapipe/
 
-dataset_backup_v1/
+# =========================
+# Generated reports
+# =========================
+ai-service/*report.csv

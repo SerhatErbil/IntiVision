@@ -1,8 +1,13 @@
-
+from pathlib import Path
 
 import tensorflow as tf
 
-from config import DATASET_DIR, IMAGE_WIDTH, IMAGE_HEIGHT, GESTURE_CLASSES
+from config import (
+    DATASET_DIR,
+    IMAGE_WIDTH,
+    IMAGE_HEIGHT,
+    GESTURE_CLASSES,
+)
 
 
 BATCH_SIZE = 32
@@ -10,9 +15,16 @@ VALIDATION_SPLIT = 0.2
 SEED = 42
 
 
-def load_datasets():
+def load_datasets(
+    dataset_dir: Path = DATASET_DIR,
+):
+    if not dataset_dir.exists():
+        raise FileNotFoundError(
+            f"Dataset directory could not be found: {dataset_dir}"
+        )
+
     train_dataset = tf.keras.utils.image_dataset_from_directory(
-        DATASET_DIR,
+        dataset_dir,
         labels="inferred",
         label_mode="int",
         class_names=GESTURE_CLASSES,
@@ -25,7 +37,7 @@ def load_datasets():
     )
 
     validation_dataset = tf.keras.utils.image_dataset_from_directory(
-        DATASET_DIR,
+        dataset_dir,
         labels="inferred",
         label_mode="int",
         class_names=GESTURE_CLASSES,
@@ -37,18 +49,33 @@ def load_datasets():
         shuffle=True,
     )
 
-    normalization_layer = tf.keras.layers.Rescaling(1.0 / 255)
+    normalization_layer = tf.keras.layers.Rescaling(
+        1.0 / 255
+    )
 
     train_dataset = train_dataset.map(
-        lambda images, labels: (normalization_layer(images), labels)
+        lambda images, labels: (
+            normalization_layer(images),
+            labels,
+        ),
+        num_parallel_calls=tf.data.AUTOTUNE,
     )
 
     validation_dataset = validation_dataset.map(
-        lambda images, labels: (normalization_layer(images), labels)
+        lambda images, labels: (
+            normalization_layer(images),
+            labels,
+        ),
+        num_parallel_calls=tf.data.AUTOTUNE,
     )
 
-    train_dataset = train_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
-    validation_dataset = validation_dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
+    train_dataset = train_dataset.prefetch(
+        buffer_size=tf.data.AUTOTUNE
+    )
+
+    validation_dataset = validation_dataset.prefetch(
+        buffer_size=tf.data.AUTOTUNE
+    )
 
     return train_dataset, validation_dataset
 
@@ -62,5 +89,11 @@ if __name__ == "__main__":
     for images, labels in train_dataset.take(1):
         print("Image batch shape:", images.shape)
         print("Label batch shape:", labels.shape)
-        print("Min pixel value:", tf.reduce_min(images).numpy())
-        print("Max pixel value:", tf.reduce_max(images).numpy())
+        print(
+            "Min pixel value:",
+            tf.reduce_min(images).numpy(),
+        )
+        print(
+            "Max pixel value:",
+            tf.reduce_max(images).numpy(),
+        )
