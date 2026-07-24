@@ -38,7 +38,7 @@ EVENT_API_URL = os.getenv(
 )
 
 DEVICE_ID = os.getenv("DEVICE_ID", "camera_01")
-MODEL_VERSION = os.getenv("MODEL_VERSION", "v1")
+MODEL_VERSION = os.getenv("MODEL_VERSION", "v2.2")
 
 CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", "0"))
 

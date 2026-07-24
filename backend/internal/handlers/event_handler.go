@@ -58,6 +58,15 @@ func (h *PredictionEventHandler) HandleCreatePredictionEvent(
 		})
 	}
 
+	log.Printf(
+		"[EVENT SAVED] id=%d gesture=%s confidence=%.2f%% device=%s model=%s",
+		event.ID,
+		event.Gesture,
+		event.Confidence*100,
+		event.DeviceID,
+		event.ModelVersion,
+	)
+
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"status": "created",
 		"event":  event,

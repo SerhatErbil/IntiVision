@@ -9,9 +9,15 @@ import (
 	"github.com/SerhatErbil/IntiVision/backend/internal/repositories"
 	"github.com/SerhatErbil/IntiVision/backend/internal/services"
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
 )
 
+
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+	log.Println(".env file not found, using system environment variables")
+    } 
 	db, err := database.ConnectPostgreSQL()
 	if err != nil {
 		log.Fatal("PostgreSQL connection failed: ", err)

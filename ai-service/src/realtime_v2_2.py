@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from config import IMAGE_HEIGHT, IMAGE_WIDTH
+from event_client import send_prediction_event
 from hand_roi import (
     DEFAULT_HAND_PADDING_RATIO,
     extract_hand_roi,
@@ -32,6 +33,8 @@ MIN_PRESENCE_CONFIDENCE = 0.5
 MIN_TRACKING_CONFIDENCE = 0.5
 
 PREDICTION_THRESHOLD = 0.60
+STABLE_PREDICTION_SECONDS = 1.0
+NO_HAND_RESET_SECONDS = 1.0
 
 
 def load_labels():
@@ -148,6 +151,13 @@ def main():
 
     start_time = time.monotonic()
 
+    last_sent_label = None
+
+    candidate_label = None
+    candidate_started_at = None
+
+    no_hand_started_at = None
+
     try:
         with mp.tasks.vision.HandLandmarker.create_from_options(
             hand_options
@@ -185,6 +195,8 @@ def main():
                 prediction_color = (0, 0, 255)
 
                 if result.hand_landmarks:
+                    no_hand_started_at = None
+
                     hand_landmarks = result.hand_landmarks[0]
 
                     roi_result = extract_hand_roi(
@@ -229,13 +241,77 @@ def main():
 
                         if confidence >= PREDICTION_THRESHOLD:
                             prediction_color = (0, 255, 0)
+
+                            current_time = time.monotonic()
+
+                            if predicted_label != candidate_label:
+                                candidate_label = predicted_label
+                                candidate_started_at = current_time
+
+                            stable_duration = (
+                                current_time - candidate_started_at
+                            )
+
+                            prediction_text += (
+                                f" | {stable_duration:.1f}/"
+                                f"{STABLE_PREDICTION_SECONDS:.1f}s"
+                            )
+
+                            prediction_is_stable = (
+                                stable_duration
+                                >= STABLE_PREDICTION_SECONDS
+                            )
+
+                            should_send_event = (
+                                prediction_is_stable
+                                and predicted_label != last_sent_label
+                            )
+
+                            if should_send_event:
+                                event_sent = send_prediction_event(
+                                    predicted_label,
+                                    confidence,
+                                )
+
+                                if event_sent:
+                                    last_sent_label = predicted_label
+
+                                    print(
+                                        "[EVENT SENT] "
+                                        f"gesture={predicted_label}, "
+                                        f"confidence={confidence:.4f}, "
+                                        f"stable_duration="
+                                        f"{stable_duration:.2f}s"
+                                    )
+
                         else:
                             prediction_color = (0, 165, 255)
+
+                            candidate_label = None
+                            candidate_started_at = None
 
                         cv2.imshow(
                             "Hand ROI - Model Input",
                             roi_preview,
                         )
+
+                    else:
+                        candidate_label = None
+                        candidate_started_at = None
+
+                else:
+                    candidate_label = None
+                    candidate_started_at = None
+
+                    if no_hand_started_at is None:
+                        no_hand_started_at = time.monotonic()
+
+                    no_hand_duration = (
+                        time.monotonic() - no_hand_started_at
+                    )
+
+                    if no_hand_duration >= NO_HAND_RESET_SECONDS:
+                        last_sent_label = None
 
                 cv2.putText(
                     frame,
