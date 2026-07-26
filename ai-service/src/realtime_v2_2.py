@@ -1,4 +1,5 @@
 import json
+import subprocess
 import time
 from pathlib import Path
 
@@ -35,6 +36,25 @@ MIN_TRACKING_CONFIDENCE = 0.5
 PREDICTION_THRESHOLD = 0.60
 STABLE_PREDICTION_SECONDS = 1.0
 NO_HAND_RESET_SECONDS = 1.0
+STATUS_BAR_HEIGHT = 70
+EMERGENCY_BLINK_INTERVAL = 0.45
+ENABLE_EMERGENCY_SOUND = True
+EMERGENCY_SOUND_PATH = (
+    PROJECT_ROOT
+    / "assets"
+    / "sounds"
+    / "ambulance_siren.mp3"
+)
+
+STATUS_COLORS = {
+    "no_hand": (65, 65, 65),
+    "analyzing": (0, 165, 255),
+    "safe": (40, 170, 60),
+    "not_safe": (0, 210, 255),
+    "stop": (220, 120, 30),
+    "help_code": (0, 120, 255),
+    "emergency": (30, 30, 220),
+}
 
 
 def load_labels():
@@ -94,6 +114,110 @@ def predict_gesture(model, labels, model_input):
         )
 
     return predicted_label, confidence
+
+
+def draw_status_bar(
+    frame,
+    status_key,
+    status_text,
+    confidence=None,
+    is_stable=False,
+):
+    _, frame_width = frame.shape[:2]
+
+    background_color = STATUS_COLORS.get(
+        status_key,
+        STATUS_COLORS["no_hand"],
+    )
+
+    text_color = (255, 255, 255)
+
+    if status_key == "emergency" and is_stable:
+        blink_phase = (
+            int(time.monotonic() / EMERGENCY_BLINK_INTERVAL) % 2
+        )
+
+        if blink_phase == 0:
+            background_color = STATUS_COLORS["emergency"]
+            text_color = (255, 255, 255)
+        else:
+            background_color = (235, 235, 235)
+            text_color = STATUS_COLORS["emergency"]
+
+    cv2.rectangle(
+        frame,
+        (0, 0),
+        (frame_width, STATUS_BAR_HEIGHT),
+        background_color,
+        thickness=-1,
+    )
+
+    display_text = status_text
+
+    if confidence is not None:
+        display_text += f"  {confidence * 100:.1f}%"
+
+    font = cv2.FONT_HERSHEY_DUPLEX
+    font_scale = 1.05
+    font_thickness = 2
+
+    text_size, _ = cv2.getTextSize(
+        display_text,
+        font,
+        font_scale,
+        font_thickness,
+    )
+
+    text_width, text_height = text_size
+
+    text_x = max(
+        20,
+        (frame_width - text_width) // 2,
+    )
+
+    text_y = (
+        STATUS_BAR_HEIGHT
+        + text_height
+    ) // 2
+
+    cv2.putText(
+        frame,
+        display_text,
+        (text_x, text_y),
+        font,
+        font_scale,
+        text_color,
+        font_thickness,
+        cv2.LINE_AA,
+    )
+
+
+def update_emergency_sound(is_active, sound_process):
+    if not ENABLE_EMERGENCY_SOUND:
+        return None
+
+    if not EMERGENCY_SOUND_PATH.exists():
+        return None
+
+    if is_active:
+        if sound_process is None or sound_process.poll() is not None:
+            return subprocess.Popen(
+                ["afplay", str(EMERGENCY_SOUND_PATH)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+        return sound_process
+
+    if sound_process is not None and sound_process.poll() is None:
+        sound_process.terminate()
+
+        try:
+            sound_process.wait(timeout=0.5)
+        except subprocess.TimeoutExpired:
+            sound_process.kill()
+
+    return None
 
 
 def main():
@@ -157,6 +281,7 @@ def main():
     candidate_started_at = None
 
     no_hand_started_at = None
+    emergency_sound_process = None
 
     try:
         with mp.tasks.vision.HandLandmarker.create_from_options(
@@ -191,8 +316,10 @@ def main():
                     timestamp_ms,
                 )
 
-                prediction_text = "NO HAND"
-                prediction_color = (0, 0, 255)
+                status_key = "no_hand"
+                status_text = "NO HAND"
+                status_confidence = None
+                status_is_stable = False
 
                 if result.hand_landmarks:
                     no_hand_started_at = None
@@ -234,14 +361,11 @@ def main():
                             3,
                         )
 
-                        prediction_text = (
-                            f"{predicted_label.upper()} - "
-                            f"{confidence * 100:.2f}%"
-                        )
+                        status_key = predicted_label
+                        status_text = predicted_label.replace("_", " ").upper()
+                        status_confidence = confidence
 
                         if confidence >= PREDICTION_THRESHOLD:
-                            prediction_color = (0, 255, 0)
-
                             current_time = time.monotonic()
 
                             if predicted_label != candidate_label:
@@ -252,15 +376,11 @@ def main():
                                 current_time - candidate_started_at
                             )
 
-                            prediction_text += (
-                                f" | {stable_duration:.1f}/"
-                                f"{STABLE_PREDICTION_SECONDS:.1f}s"
-                            )
-
                             prediction_is_stable = (
                                 stable_duration
                                 >= STABLE_PREDICTION_SECONDS
                             )
+                            status_is_stable = prediction_is_stable
 
                             should_send_event = (
                                 prediction_is_stable
@@ -285,7 +405,10 @@ def main():
                                     )
 
                         else:
-                            prediction_color = (0, 165, 255)
+                            status_key = "analyzing"
+                            status_text = "ANALYZING"
+                            status_confidence = confidence
+                            status_is_stable = False
 
                             candidate_label = None
                             candidate_started_at = None
@@ -313,14 +436,22 @@ def main():
                     if no_hand_duration >= NO_HAND_RESET_SECONDS:
                         last_sent_label = None
 
-                cv2.putText(
-                    frame,
-                    prediction_text,
-                    (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.9,
-                    prediction_color,
-                    2,
+                emergency_is_active = (
+                    status_key == "emergency"
+                    and status_is_stable
+                )
+
+                emergency_sound_process = update_emergency_sound(
+                    emergency_is_active,
+                    emergency_sound_process,
+                )
+
+                draw_status_bar(
+                    frame=frame,
+                    status_key=status_key,
+                    status_text=status_text,
+                    confidence=status_confidence,
+                    is_stable=status_is_stable,
                 )
 
                 cv2.imshow(
@@ -335,6 +466,7 @@ def main():
         print(f"[ERROR] Realtime error: {error}")
 
     finally:
+        update_emergency_sound(False, emergency_sound_process)
         camera.release()
         cv2.destroyAllWindows()
         print("Camera closed.")
