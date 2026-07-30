@@ -7,6 +7,8 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import classification_report, confusion_matrix
 
+import matplotlib.pyplot as plt
+from sklearn.metrics import ConfusionMatrixDisplay
 
 AI_SERVICE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = AI_SERVICE_DIR.parent
@@ -178,6 +180,58 @@ def predict_classes(
         axis=1,
     )
 
+def save_confusion_matrix(
+    title: str,
+    file_name: str,
+    true_labels: np.ndarray,
+    predicted_labels: np.ndarray,
+) -> None:
+    matrix = confusion_matrix(
+        true_labels,
+        predicted_labels,
+        labels=range(len(GESTURE_CLASSES)),
+    )
+
+    display = ConfusionMatrixDisplay(
+        confusion_matrix=matrix,
+        display_labels=GESTURE_CLASSES,
+    )
+
+    figure, axis = plt.subplots(
+        figsize=(10, 8),
+    )
+
+    display.plot(
+        ax=axis,
+        cmap="Blues",
+        values_format="d",
+        colorbar=False,
+    )
+
+    axis.set_title(title)
+    axis.set_xlabel("Predicted Label")
+    axis.set_ylabel("True Label")
+
+    plt.xticks(rotation=30, ha="right")
+    plt.tight_layout()
+
+    output_dir = PROJECT_DIR / "docs" / "images"
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    output_path = output_dir / file_name
+
+    figure.savefig(
+        output_path,
+        dpi=200,
+        bbox_inches="tight",
+    )
+
+    plt.close(figure)
+
+    print(f"Confusion matrix saved: {output_path}")
 
 def print_results(
     title: str,
@@ -351,6 +405,13 @@ def main() -> None:
         title="INTIVISION V2.1 — COMMON MEDIAPIPE-DETECTED SUBSET",
         true_labels=common_labels_array,
         predicted_labels=common_v2_1_predictions,
+    )
+
+    save_confusion_matrix(
+        title="IntiVision V2.2 Confusion Matrix",
+        file_name="confusion_matrix_v2_2.png",
+        true_labels=v2_2_labels_array,
+        predicted_labels=v2_2_predictions,
     )
 
     print("\n" + "=" * 70)
